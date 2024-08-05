@@ -5,7 +5,9 @@
 #include <unistd.h>
 #include <iostream>
 #include <iomanip>
-#include<cassert>
+#include <cassert>
+#include <span>
+#include <iterator>
 
 using byte = std::uint8_t;
 using word = std::array<std::uint8_t,4>;
@@ -96,6 +98,14 @@ word RotWord(word current){
   res[3] = current[0];
   return res;
 }
+void AddRoundKey(std::array<byte,4*Nk> &state,std::array<word, Nb*(Nr+1)>::const_iterator s){
+  for(std::size_t j=0;j<4;j++){
+    for(std::size_t i=0;i<4;i++){
+      state[i+j*4] ^= (*s)[i];
+    }
+    s++;
+  }
+}
 void KeyExpansion(const std::array<byte,4*Nk> &key,std::array<word,Nb*(Nr+1)> &w){
   word temp;
   std::size_t i = 0;
@@ -120,7 +130,7 @@ void KeyExpansion(const std::array<byte,4*Nk> &key,std::array<word,Nb*(Nr+1)> &w
     i = i + 1;
   }
 }
-void Cipher(const std::array<byte,4*Nb> &in,std::array<byte,4*Nb> &oute,const std::array<word,Nb*(Nr+1)> &word){
+void Cipher(const std::array<byte,4*Nb> &in,std::array<byte,4*Nb> &oute,const std::array<word,Nb*(Nr+1)> &w){
   std::array<byte,4*Nb> state = in;
   //AddRoundKey(state,w[0,Nb-1]);
   for(std::size_t round = 1;round <= Nr-1;round++){

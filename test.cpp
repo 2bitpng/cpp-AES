@@ -6,9 +6,11 @@ void print_word(const word& w) {
     }
     std::cout << std::hex << std::setw(8) << std::setfill('0') << value << std::endl;
 }
-
+void print_byte(const byte& b){
+  std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)b << std::endl;
+}
 void test_KeyExpansion(){
-  std::array<byte,4*Nb> state = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
+  std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
                                  0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c}; 
   std::array<word,Nb*(Nr+1)> expected_w = {
     word{0x2b,0x7e,0x15,0x16},
@@ -57,8 +59,21 @@ void test_KeyExpansion(){
     word{0xb6,0x63,0x0c,0xa6}
   };
   std::array<word,Nb*(Nr+1)> w;
-  KeyExpansion(state,w);
+  KeyExpansion(key,w);
   assert(expected_w == w);
+}
+void test_AddRoundKey(){
+  std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
+    0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c}; 
+  std::array<byte,4*Nb> input = {0x32,0x43,0xf6,0xa8,0x88,0x5a,0x30,
+    0x8d,0x31,0x31,0x98,0xa2,0xe0,0x37,0x07,0x34};
+  std::array<word,Nb*(Nr+1)> w;
+  KeyExpansion(key,w);
+  print_word(*w.cbegin());
+  AddRoundKey(input,w.cbegin());
+//  for(std::size_t i=0;i<4*Nk;i++){
+//    print_byte(input[i]);
+//  }
 }
 int main(int argc, char** argv){
 //  char opt;
@@ -78,4 +93,5 @@ int main(int argc, char** argv){
 //  }
 //  std::cout<<Nr<<std::endl;
   test_KeyExpansion();
+  test_AddRoundKey();
 }
