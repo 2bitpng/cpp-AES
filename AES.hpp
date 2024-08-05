@@ -84,9 +84,7 @@ const std::array<word, 11> RCON = {
 word SubWord(word current){
   word res;
   for(std::size_t i=0;i<4;i++){
-    std::uint16_t ub = (current[i]>>4);
-    std::uint16_t lb = (current[i])&(0xf);
-    res[i] = SBOX[ub][lb];
+    res[i] = SBOX[current[i]>>4][current[i]&0xf];
   }
   return res;
 }
@@ -130,16 +128,35 @@ void KeyExpansion(const std::array<byte,4*Nk> &key,std::array<word,Nb*(Nr+1)> &w
     i = i + 1;
   }
 }
+void SubBytes(std::array<byte,4*Nb> &state){
+  for(std::size_t i=0;i<4*Nb;i++){
+    state[i] = SBOX[state[i]>>4][state[i]&0xf]; 
+  }
+}
+void ShiftRows(std::array<byte,4*Nb> &state){
+  for(std::size_t i=1;i+4<4*Nb;i+=4){
+    std::swap(state[i],state[i+4]);
+  }
+  for(std::size_t i=2;i+8<4*Nb;i+=4){
+    std::swap(state[i],state[i+8]);
+  }
+  //3つシフト
+  for(std::size_t i=4*Nb-1;i>=4;i-=4){
+    std::swap(state[i-4],state[i]);
+  }
+}
+void MixColumns(std::array<byte,4*Nb> &state){
+}
 void Cipher(const std::array<byte,4*Nb> &in,std::array<byte,4*Nb> &oute,const std::array<word,Nb*(Nr+1)> &w){
   std::array<byte,4*Nb> state = in;
-  //AddRoundKey(state,w[0,Nb-1]);
+  AddRoundKey(state,w.begin());
   for(std::size_t round = 1;round <= Nr-1;round++){
  //   SubBytes(state);
  //   ShiftRows(state);
  //   MixColumns(state);
- //   AddRoundKey(state,w[round*Nb,(round+1)*Nb-1]);
+    AddRoundKey(state,next(w.begin(),round*Nb));
   }
  // SubBytes(state);
  // ShiftRows(state);
- // AddRoundKey(state,w[Nr*Nb,(Nr+1)*Nb-1]);
+  AddRoundKey(state,next(w.begin(),Nr*Nb));
 }
