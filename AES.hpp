@@ -145,18 +145,58 @@ void ShiftRows(std::array<byte,4*Nb> &state){
     std::swap(state[i-4],state[i]);
   }
 }
-void MixColumns(std::array<byte,4*Nb> &state){
+byte xtime(const byte x){
+  return (x<<1)^((x&0x80)?0x1b:0x00);
 }
-void Cipher(const std::array<byte,4*Nb> &in,std::array<byte,4*Nb> &oute,const std::array<word,Nb*(Nr+1)> &w){
+byte modmul(byte x,byte a){
+  byte res = 0;
+  while(a>0){
+    if(a&1){
+      res ^= x;
+    }
+    x = xtime(x);
+    a>>=1;
+  }
+  return res;
+}
+void MixColumns(std::array<byte,4*Nb> &state){
+  std::array<byte,4*Nb> current = {};
+ // current[0] = modmul(MIXBOX[0][0],state[0])^modmul(MIXBOX[0][1],state[1])
+ //              ^modmul(MIXBOX[0][2],state[2])^modmul(MIXBOX[0][3],state[3]);
+ // current[1] = modmul(MIXBOX[1][0],state[0])^modmul(MIXBOX[1][1],state[1])
+ //              ^modmul(MIXBOX[1][2],state[2])^modmul(MIXBOX[1][3],state[3]);
+ // current[2] = modmul(MIXBOX[2][0],state[0])^modmul(MIXBOX[2][1],state[1])
+ //              ^modmul(MIXBOX[2][2],state[2])^modmul(MIXBOX[2][3],state[3]);
+ // current[3] = modmul(MIXBOX[3][0],state[0])^modmul(MIXBOX[3][1],state[1])
+ //              ^modmul(MIXBOX[3][2],state[2])^modmul(MIXBOX[3][3],state[3]);
+ // current[4] = modmul(MIXBOX[0][0],state[4])^modmul(MIXBOX[0][1],state[5])
+ //              ^modmul(MIXBOX[0][2],state[6])^modmul(MIXBOX[0][3],state[7]);
+ // current[5] = modmul(MIXBOX[1][0],state[4])^modmul(MIXBOX[1][1],state[5])
+ //              ^modmul(MIXBOX[1][2],state[6])^modmul(MIXBOX[1][3],state[7]);
+ // current[6] = modmul(MIXBOX[2][0],state[4])^modmul(MIXBOX[2][1],state[5])
+ //              ^modmul(MIXBOX[2][2],state[6])^modmul(MIXBOX[2][3],state[7]);
+ // current[7] = modmul(MIXBOX[3][0],state[4])^modmul(MIXBOX[3][1],state[5])
+ //              ^modmul(MIXBOX[3][2],state[6])^modmul(MIXBOX[3][3],state[7]);
+  for(std::size_t i=0;i<Nb;i++){
+    for(std::size_t j=0;j<Nb;j++){
+      for(std::size_t k=0;k<Nb;k++){
+        current[i*4+j] ^= modmul(MIXBOX[j][k],state[4*i+k]);
+      }
+    }
+  }
+  state = current;
+}
+void Cipher(const std::array<byte,4*Nb> &in,std::array<byte,4*Nb> &out,const std::array<word,Nb*(Nr+1)> &w){
   std::array<byte,4*Nb> state = in;
   AddRoundKey(state,w.begin());
   for(std::size_t round = 1;round <= Nr-1;round++){
- //   SubBytes(state);
- //   ShiftRows(state);
- //   MixColumns(state);
+    SubBytes(state);
+    ShiftRows(state);
+    MixColumns(state);
     AddRoundKey(state,next(w.begin(),round*Nb));
   }
- // SubBytes(state);
- // ShiftRows(state);
+  SubBytes(state);
+  ShiftRows(state);
   AddRoundKey(state,next(w.begin(),Nr*Nb));
+  out = state;
 }

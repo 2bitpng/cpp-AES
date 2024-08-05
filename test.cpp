@@ -61,6 +61,7 @@ void test_KeyExpansion(){
   std::array<word,Nb*(Nr+1)> w;
   KeyExpansion(key,w);
   assert(expected_w == w);
+  std::cerr<<"OK KeyExpansion"<<std::endl;
 }
 void test_AddRoundKey(){
   std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
@@ -74,6 +75,7 @@ void test_AddRoundKey(){
 //  for(std::size_t i=0;i<4*Nk;i++){
 //    print_byte(input[i]);
 //  }
+  std::cerr<<"OK AddRoundKey"<<std::endl;
 }
 void test_SubBytes(){
   std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
@@ -91,6 +93,7 @@ void test_SubBytes(){
   AddRoundKey(input,w.cbegin());
   SubBytes(input);
   assert(input == expected_reslt);
+  std::cerr<<"OK SubBytes"<<std::endl;
 }
 void test_ShiftRows(){
   std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
@@ -112,6 +115,21 @@ void test_ShiftRows(){
 //  for(std::size_t i=0;i<4*Nk;i++){
 //    print_byte(input[i]);
 //  }
+  std::cerr<<"OK ShiftRows"<<std::endl;
+}
+void test_xtime(){
+  assert(xtime(0x57)==0xae);
+  assert(xtime(0xae)==0x47);
+  assert(xtime(0x47)==0x8e);
+  assert(xtime(0x8e)==0x07);
+  std::cerr<<"OK xtime"<<std::endl;
+}
+void test_modmul(){
+  assert(modmul(0x57,0x13)==0xfe);
+  assert(modmul(0x57,0x10)==0x07);
+  assert(modmul(0x13,0x57)==0xfe);
+  assert(modmul(0x10,0x57)==0x07);
+  std::cerr<<"OK modmul"<<std::endl;
 }
 void test_MixColumns(){
   std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
@@ -119,10 +137,10 @@ void test_MixColumns(){
   std::array<byte,4*Nb> input = {0x32,0x43,0xf6,0xa8,0x88,0x5a,0x30,
     0x8d,0x31,0x31,0x98,0xa2,0xe0,0x37,0x07,0x34};
   const std::array<byte,4*Nb> expected_reslt = {
-    0x04,0xe0,0x48,0x28,
-    0x66,0xcb,0xf8,0x06,
-    0x81,0x19,0xd3,0x26,
-    0xe5,0x9a,0x7a,0x4c
+    0x04,0x66,0x81,0xe5,
+    0xe0,0xcb,0x19,0x9a,
+    0x48,0xf8,0xd3,0x7a,
+    0x28,0x06,0x26,0x4c
   };
   std::array<word,Nb*(Nr+1)> w;
   KeyExpansion(key,w);
@@ -130,7 +148,29 @@ void test_MixColumns(){
   SubBytes(input);
   ShiftRows(input);
   MixColumns(input);
+//  for(std::size_t i=0;i<4*Nk;i++){
+//    print_byte(input[i]);
+//  }
   assert(expected_reslt == input);
+  std::cerr<<"OK MixColumns"<<std::endl;
+}
+void test_Cipher(){
+  std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
+    0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c}; 
+  std::array<byte,4*Nb> input = {0x32,0x43,0xf6,0xa8,0x88,0x5a,0x30,
+    0x8d,0x31,0x31,0x98,0xa2,0xe0,0x37,0x07,0x34};
+  const std::array<byte,4*Nb> expected_reslt = {
+    0x39,0x25,0x84,0x1d,
+    0x02,0xdc,0x09,0xfb,
+    0xdc,0x11,0x85,0x97,
+    0x19,0x6a,0x0b,0x32
+  };
+  std::array<word,Nb*(Nr+1)> w;
+  KeyExpansion(key,w);
+  std::array<byte,4*Nb> out;
+  Cipher(input,out,w);
+  assert(out == expected_reslt);
+  std::cerr<<"OK Cipher"<<std::endl;
 }
 int main(int argc, char** argv){
 //  char opt;
@@ -153,5 +193,8 @@ int main(int argc, char** argv){
   test_AddRoundKey();
   test_SubBytes();
   test_ShiftRows();
+  test_xtime();
+  test_modmul();
   test_MixColumns();
+  test_Cipher();
 }
