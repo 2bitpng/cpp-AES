@@ -9,6 +9,23 @@ void print_word(const word& w) {
 void print_byte(const byte& b){
   std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)b << std::endl;
 }
+std::string printHex(const std::array<uint8_t, 4 * 4>& input) {
+    std::ostringstream oss;
+    for (const auto& byte : input) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+    }
+    return oss.str();
+}
+std::string printHex2(std::array<word, Nb*(Nr+1)>::const_iterator s) {
+    std::ostringstream oss;
+    for (int i = 0; i < 4; ++i) { for (const auto& byte : *s) {
+            oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+        }
+        ++s;
+    }
+    return oss.str();
+}
+
 void test_KeyExpansion(){
   std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
                                  0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c}; 
@@ -251,6 +268,58 @@ void test_InvCIpher(){
   assert(out == expected_reslt);
   std::cerr<<"OK InvCipher"<<std::endl;
 }
+void test(){
+  std::array<byte,4*Nb> input = {0x00,0x11,0x22,0x33,0x44,0x55,0x66,
+    0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff}; 
+  std::array<byte,4*Nb> key = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,
+    0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f}; 
+  std::array<word,Nb*(Nr+1)> w;
+  KeyExpansion(key,w);
+  std::cout<<"round[ 0].input "<<printHex(input)<<std::endl;
+  AddRoundKey(input,w.begin());
+  std::cout<<"round[ 0].k_sch "<<printHex2(w.begin())<<std::endl;
+  for(std::size_t round = 1;round <= Nr-1;round++){
+    std::cout<<"round[ "<<round<<"].start "<<printHex(input)<<std::endl;
+    SubBytes(input);
+    std::cout<<"round[ "<<round<<"].s_box "<<printHex(input)<<std::endl;
+    ShiftRows(input);
+    std::cout<<"round[ "<<round<<"].s_row "<<printHex(input)<<std::endl;
+    MixColumns(input);
+    std::cout<<"round[ "<<round<<"].m_col "<<printHex(input)<<std::endl;
+    std::cout<<"round[ "<<round<<"].k_sch "<<printHex2(next(w.begin(),round*Nb))<<std::endl;
+    AddRoundKey(input,next(w.begin(),round*Nb));
+  }
+  std::cout<<"round["<<Nr<<"].start "<<printHex(input)<<std::endl;
+  SubBytes(input);
+  std::cout<<"round["<<Nr<<"].s_box "<<printHex(input)<<std::endl;
+  ShiftRows(input);
+  std::cout<<"round["<<Nr<<"].s_row "<<printHex(input)<<std::endl;
+  AddRoundKey(input,next(w.begin(),Nr*Nb));
+    std::cout<<"round["<<Nr<<"].k_sch "<<printHex2(next(w.begin(),Nr*Nb))<<std::endl;
+  std::cout<<"round["<<Nr<<"].output "<<printHex(input)<<std::endl;
+  std::cout<<"round[ 0].iinput "<<printHex(input)<<std::endl;
+  std::cout<<"round[ 0].ik_sch "<<printHex2(next(w.begin(),Nr*Nb))<<std::endl;
+  AddRoundKey(input,next(w.begin(),Nr*Nb));
+  for(std::size_t round = Nr-1;round>=1;round--){
+    std::cout<<"round[ "<<Nr-round<<"].istart "<<printHex(input)<<std::endl;
+    InvShiftRows(input);
+    std::cout<<"round[ "<<Nr-round<<"].is_row "<<printHex(input)<<std::endl;
+    InvSubBytes(input);
+    std::cout<<"round[ "<<Nr-round<<"].is_box "<<printHex(input)<<std::endl;
+    std::cout<<"round[ "<<Nr-round<<"].ik_sch "<<printHex2(next(w.begin(),round*Nb))<<std::endl;
+    AddRoundKey(input,next(w.begin(),round*Nb));
+    std::cout<<"round[ "<<Nr-round<<"].ik_add "<<printHex(input)<<std::endl;
+    InvMixColumns(input);
+  }
+  std::cout<<"round["<<Nr<<"].istart "<<printHex(input)<<std::endl;
+  InvShiftRows(input);
+  std::cout<<"round["<<Nr<<"].is_row "<<printHex(input)<<std::endl;
+  InvSubBytes(input);
+  std::cout<<"round["<<Nr<<"].is_box "<<printHex(input)<<std::endl;
+  std::cout<<"round["<<Nr<<"].ik_sch "<<printHex2(w.begin())<<std::endl;
+  AddRoundKey(input,w.begin());
+  std::cout<<"round["<<Nr<<"].ioutput "<<printHex(input)<<std::endl;
+}
 int main(int argc, char** argv){
   test_KeyExpansion();
   test_AddRoundKey();
@@ -264,4 +333,5 @@ int main(int argc, char** argv){
   test_InvSubBytes();
   test_InvMixColumns();
   test_InvCIpher();
+  test();
 }
