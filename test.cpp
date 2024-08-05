@@ -70,11 +70,7 @@ void test_AddRoundKey(){
     0x8d,0x31,0x31,0x98,0xa2,0xe0,0x37,0x07,0x34};
   std::array<word,Nb*(Nr+1)> w;
   KeyExpansion(key,w);
-//  print_word(*w.cbegin());
   AddRoundKey(input,w.cbegin());
-//  for(std::size_t i=0;i<4*Nk;i++){
-//    print_byte(input[i]);
-//  }
   std::cerr<<"OK AddRoundKey"<<std::endl;
 }
 void test_SubBytes(){
@@ -95,6 +91,23 @@ void test_SubBytes(){
   assert(input == expected_reslt);
   std::cerr<<"OK SubBytes"<<std::endl;
 }
+void test_InvSubBytes(){
+  std::array<byte,4*Nb> input= {
+    0xe9,0x09,0x89,0x72,
+    0xcb,0x31,0x07,0x5f,
+    0x3d,0x32,0x7d,0x94,
+    0xaf,0x2e,0x2c,0xb5
+  };
+  const std::array<byte,4*Nb> expected_reslt= {
+    0xeb,0x40,0xf2,0x1e,
+    0x59,0x2e,0x38,0x84,
+    0x8b,0xa1,0x13,0xe7,
+    0x1b,0xc3,0x42,0xd2
+  };
+  InvSubBytes(input);
+  assert(input==expected_reslt);
+  std::cerr<<"OK InvSubBytes"<<std::endl;
+}
 void test_ShiftRows(){
   std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
     0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c}; 
@@ -112,10 +125,36 @@ void test_ShiftRows(){
   SubBytes(input);
   ShiftRows(input);
   assert(expected_reslt == input);
-//  for(std::size_t i=0;i<4*Nk;i++){
-//    print_byte(input[i]);
-//  }
   std::cerr<<"OK ShiftRows"<<std::endl;
+}
+void test_InvShiftRows(){
+ std::array<byte,4*Nb> input = {
+    0x39,0x25,0x84,0x1d,
+    0x02,0xdc,0x09,0xfb,
+    0xdc,0x11,0x85,0x97,
+    0x19,0x6a,0x0b,0x32
+  };
+  std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
+    0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c}; 
+  const std::array<byte,4*Nb> expected_reslt_AddRound = {
+    0xe9,0x31,0x7d,0xb5,
+    0xcb,0x32,0x2c,0x72,
+    0x3d,0x2e,0x89,0x5f,
+    0xaf,0x09,0x07,0x94
+  };
+  const std::array<byte,4*Nb> expected_reslt_InvShiftRows= {
+    0xe9,0x09,0x89,0x72,
+    0xcb,0x31,0x07,0x5f,
+    0x3d,0x32,0x7d,0x94,
+    0xaf,0x2e,0x2c,0xb5
+  };
+  std::array<word,Nb*(Nr+1)> w;
+  KeyExpansion(key,w);
+  AddRoundKey(input,next(w.begin(),Nr*Nb));
+  assert(input==expected_reslt_AddRound);
+  InvShiftRows(input);
+  assert(input==expected_reslt_InvShiftRows);
+  std::cerr<<"OK InvShiftRows"<<std::endl;
 }
 void test_xtime(){
   assert(xtime(0x57)==0xae);
@@ -148,11 +187,33 @@ void test_MixColumns(){
   SubBytes(input);
   ShiftRows(input);
   MixColumns(input);
-//  for(std::size_t i=0;i<4*Nk;i++){
-//    print_byte(input[i]);
-//  }
   assert(expected_reslt == input);
   std::cerr<<"OK MixColumns"<<std::endl;
+}
+void test_InvMixColumns(){
+ std::array<byte,4*Nb> input = {
+    0x39,0x25,0x84,0x1d,
+    0x02,0xdc,0x09,0xfb,
+    0xdc,0x11,0x85,0x97,
+    0x19,0x6a,0x0b,0x32
+  };
+  std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
+    0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c}; 
+  const std::array<byte,4*Nb> expected_reslt= {
+    0x87,0x6e,0x46,0xa6,
+    0xf2,0x4c,0xe7,0x8c,
+    0x4d,0x90,0x4a,0xd8,
+    0x97,0xec,0xc3,0x95
+  };
+  std::array<word,Nb*(Nr+1)> w;
+  KeyExpansion(key,w);
+  AddRoundKey(input,next(w.begin(),Nr*Nb));
+  InvShiftRows(input);
+  InvSubBytes(input);
+  AddRoundKey(input,next(w.begin(),(Nr-1)*Nb));
+  InvMixColumns(input);
+  assert(input==expected_reslt);
+  std::cerr<<"OK InvMixColumns"<<std::endl;
 }
 void test_Cipher(){
   std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
@@ -172,23 +233,25 @@ void test_Cipher(){
   assert(out == expected_reslt);
   std::cerr<<"OK Cipher"<<std::endl;
 }
+void test_InvCIpher(){
+  std::array<byte,4*Nb> key = {0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,
+    0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c}; 
+  const std::array<byte,4*Nb> expected_reslt = {0x32,0x43,0xf6,0xa8,0x88,0x5a,0x30,
+    0x8d,0x31,0x31,0x98,0xa2,0xe0,0x37,0x07,0x34};
+  std::array<byte,4*Nb> input = {
+    0x39,0x25,0x84,0x1d,
+    0x02,0xdc,0x09,0xfb,
+    0xdc,0x11,0x85,0x97,
+    0x19,0x6a,0x0b,0x32
+  };
+  std::array<word,Nb*(Nr+1)> w;
+  KeyExpansion(key,w);
+  std::array<byte,4*Nb> out;
+  InvCipher(input,out,w);
+  assert(out == expected_reslt);
+  std::cerr<<"OK InvCipher"<<std::endl;
+}
 int main(int argc, char** argv){
-//  char opt;
-//  while ((opt = getopt(argc, argv, "m:")) != -1)
-//  {
-//    switch (opt) {
-//      case 'm':
-//        if(atoi(optarg)==128)Nr =10,mode=128,Nk=4;
-//        if(atoi(optarg)==192)Nr =12,mode=192,Nk=6;
-//        if(atoi(optarg)==256)Nr =14,mode=256,Nk=8;
-//        break;
-//      default: /* 'Error' */
-//        printf("Usage: %s -m [mode]\n", argv[0]);
-//        exit(1);
-//        break;
-//    }
-//  }
-//  std::cout<<Nr<<std::endl;
   test_KeyExpansion();
   test_AddRoundKey();
   test_SubBytes();
@@ -197,4 +260,8 @@ int main(int argc, char** argv){
   test_modmul();
   test_MixColumns();
   test_Cipher();
+  test_InvShiftRows();
+  test_InvSubBytes();
+  test_InvMixColumns();
+  test_InvCIpher();
 }

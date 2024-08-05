@@ -133,6 +133,11 @@ void SubBytes(std::array<byte,4*Nb> &state){
     state[i] = SBOX[state[i]>>4][state[i]&0xf]; 
   }
 }
+void InvSubBytes(std::array<byte,4*Nb> &state){
+  for(std::size_t i=0;i<4*Nb;i++){
+    state[i] = INV_SBOX[state[i]>>4][state[i]&0xf]; 
+  }
+}
 void ShiftRows(std::array<byte,4*Nb> &state){
   for(std::size_t i=1;i+4<4*Nb;i+=4){
     std::swap(state[i],state[i+4]);
@@ -140,9 +145,20 @@ void ShiftRows(std::array<byte,4*Nb> &state){
   for(std::size_t i=2;i+8<4*Nb;i+=4){
     std::swap(state[i],state[i+8]);
   }
-  //3つシフト
   for(std::size_t i=4*Nb-1;i>=4;i-=4){
     std::swap(state[i-4],state[i]);
+  }
+}
+
+void InvShiftRows(std::array<byte,4*Nb> &state){
+  for(std::size_t i=4*Nb-3;i>=4;i-=4){
+    std::swap(state[i-4],state[i]);
+  }
+  for(std::size_t i=2;i+8<4*Nb;i+=4){
+    std::swap(state[i],state[i+8]);
+  }
+  for(std::size_t i=Nb-1;i+4<4*Nb;i+=4){
+    std::swap(state[i],state[i+4]);
   }
 }
 byte xtime(const byte x){
@@ -186,6 +202,17 @@ void MixColumns(std::array<byte,4*Nb> &state){
   }
   state = current;
 }
+void InvMixColumns(std::array<byte,4*Nb> &state){
+  std::array<byte,4*Nb> current = {};
+  for(std::size_t i=0;i<Nb;i++){
+    for(std::size_t j=0;j<Nb;j++){
+      for(std::size_t k=0;k<Nb;k++){
+        current[j*4+i] ^= modmul(INV_MIXBOX[i][k],state[4*j+k]);
+      }
+    }
+  }
+  state = current;
+}
 void Cipher(const std::array<byte,4*Nb> &in,std::array<byte,4*Nb> &out,const std::array<word,Nb*(Nr+1)> &w){
   std::array<byte,4*Nb> state = in;
   AddRoundKey(state,w.begin());
@@ -198,5 +225,19 @@ void Cipher(const std::array<byte,4*Nb> &in,std::array<byte,4*Nb> &out,const std
   SubBytes(state);
   ShiftRows(state);
   AddRoundKey(state,next(w.begin(),Nr*Nb));
+  out = state;
+}
+void InvCipher(const std::array<byte,4*Nb> &in,std::array<byte,4*Nb> &out,const std::array<word,Nb*(Nr+1)> &w){
+  std::array<byte,4*Nb> state = in;
+  AddRoundKey(state,next(w.begin(),Nr*Nb));
+  for(std::size_t round=Nr-1;round>=1;round--){
+    InvShiftRows(state);
+    InvSubBytes(state);
+    AddRoundKey(state,next(w.begin(),round*Nb));
+    InvMixColumns(state);
+  }
+  InvShiftRows(state);
+  InvSubBytes(state);
+  AddRoundKey(state,w.begin());
   out = state;
 }
